@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* App background helpers (optional) */
+@layer utilities {
+  .bg-app {
+    @apply min-h-screen text-slate-100;
+    background:
+      radial-gradient(1200px 800px at 85% -10%, #2a2f63 0%, rgba(42,47,99,0) 60%),
+      radial-gradient(900px 700px at -10% 120%, #2a2f63 0%, rgba(42,47,99,0) 60%),
+      #0f1226;
+  }
+}
