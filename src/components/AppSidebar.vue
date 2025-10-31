@@ -49,6 +49,21 @@
           </RouterLink>
         </li>
         <li>
+          <RouterLink to="/websites" v-slot="{ href, navigate, isActive }">
+            <a
+                :href="href"
+                @click="navigate"
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors"
+                :class="isActive? 'bg-blue-800 text-white' : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 12c2.21 0 4-1.79 4-4S14.21 4 12 4 8 5.79 8 8s1.79 4 4 4zm0 2c-3.33 0-6 2.67-6 6h12c0-3.33-2.67-6-6-6z" />
+              </svg>
+              Websites
+            </a>
+          </RouterLink>
+        </li>
+        <li>
           <RouterLink to="/logs" v-slot="{ href, navigate, isActive }">
             <a
                 :href="href"
