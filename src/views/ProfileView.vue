@@ -22,23 +22,6 @@
               <p class="text-gray-600">{{ userInfo.email }}</p>
             </div>
 
-            <!-- Status Badge -->
-            <div class="flex items-center space-x-2">
-              <div class="w-3 h-3 bg-green-600 rounded-full"></div>
-              <span class="text-sm text-green-600 font-medium">Total classification</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Account Stats -->
-        <div class="grid grid-cols-2 gap-4">
-          <div class="bg-blue-50 rounded-lg p-4 text-center">
-            <div class="text-2xl font-bold text-green-600">3</div>
-            <div class="text-sm text-green-600">True Classified</div>
-          </div>
-          <div class="bg-green-50 rounded-lg p-4 text-center">
-            <div class="text-2xl font-bold text-red-500">12</div>
-            <div class="text-sm text-red-500">Misclassified</div>
           </div>
         </div>
       </div>

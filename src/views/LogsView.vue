@@ -71,9 +71,9 @@
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ logs.createdAt.replaceAll("T"," ").substring(0,16) }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   <div class="flex items-center space-x-2">
-                    <button @click.stop="openEditModal(logs)" class="px-4 py-2 bg-primary text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">
-                      Edit
-                    </button>
+<!--                    <button @click.stop="openEditModal(logs)" class="px-4 py-2 bg-primary text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">-->
+<!--                      Edit-->
+<!--                    </button>-->
                     <button @click.stop="openDeleteModal(logs)" class="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 transition-colors">
                       Delete
                     </button>
@@ -252,7 +252,7 @@ async function confirmDelete() {
   processingMessage.value = 'Deleting logs...'
   try {
     // Requirement: send delete request to logs/<id>/delete
-    const { data } = await api.post(`/logs/${deleteTarget.value._id}/delete`)
+    const { data } = await api.post(`/log/${deleteTarget.value._id}/delete`)
     // Remove from local list
     logs.value = logs.value.filter(c => c._id !== deleteTarget.value._id)
     // Show server response as success text

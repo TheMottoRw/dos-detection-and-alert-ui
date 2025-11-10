@@ -40,13 +40,16 @@
               <td class="px-6 py-4 whitespace-nowrap">
                 <span :class="[
                     'inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium',
-                    (site.site_status || site.status) === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                    (site.site_status === 'active' ? 'bg-green-100 text-green-800' :  (site.site_status === 'defaced' ? 'bg-red-100 text-red-800':'bg-gray-100 text-gray-800'))
                   ]">
                   {{ (site.site_status || site.status) || 'unknown' }}
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                 <div class="flex items-center gap-2">
+                  <button @click="openEdit(site)" class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700" :disabled="site.__saving">
+                    Edit
+                  </button>
                   <button @click="toggleStatus(site)" class="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700" :disabled="site.__saving">
                     {{ (site.site_status || site.status) === 'active' ? 'Deactivate' : 'Activate' }}
                   </button>
@@ -78,6 +81,24 @@
         </div>
       </div>
     </div>
+
+    <!-- Edit Website Modal -->
+    <div v-if="showEdit" class="fixed inset-0 z-50 flex items-center justify-center">
+      <div class="absolute inset-0 bg-black/50" @click="closeEdit"></div>
+      <div class="relative bg-white rounded-lg shadow-xl w-full max-w-md mx-4 p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Edit website</h3>
+        <label class="block text-sm font-medium text-gray-700 mb-1" for="edit-site-name-input">Website name</label>
+        <input id="edit-site-name-input" v-model="editSiteName" type="text" placeholder="example.com" class="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500" />
+        <p v-if="editValidationError" class="text-sm text-red-600 mt-2">{{ editValidationError }}</p>
+        <p v-if="editError" class="text-sm text-red-600 mt-2">{{ editError }}</p>
+        <div class="mt-6 flex justify-end space-x-3">
+          <button @click="closeEdit" class="px-4 py-2 bg-gray-100 text-gray-800 text-sm font-medium rounded-md hover:bg-gray-200 transition-colors" :disabled="savingEdit">Cancel</button>
+          <button @click="submitEdit" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50" :disabled="savingEdit">
+            {{ savingEdit ? 'Saving...' : 'Save changes' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -94,6 +115,14 @@ const newSiteName = ref('')
 const validationError = ref('')
 const addError = ref('')
 const saving = ref(false)
+
+// Edit modal state
+const showEdit = ref(false)
+const editSiteName = ref('')
+const editValidationError = ref('')
+const editError = ref('')
+const savingEdit = ref(false)
+const editingSite = ref(null)
 
 function openAdd() {
   showAdd.value = true
@@ -136,10 +165,21 @@ async function submitAdd() {
     const payload = { name: newSiteName.value }
     const { data } = await api.post('/website', payload)
 
-    console.log(data)
-    // Optimistically add to list; if API returns the created site use it, else construct one
-    const created = data && (data.site_name || data)
-    websites.value.unshift(created? created : { name: newSiteName.value, site_status: 'active' })
+    // Backend may return full site or only the id. Normalize the result.
+    let createdSite
+    if (data && (data.site_name || data.name)) {
+      createdSite = data
+    } else {
+      const id = (data && (data._id || data.id || data.insertedId)) || (typeof data === 'string' ? data : undefined)
+      createdSite = {
+        _id: id,
+        id: id,
+        site_name: newSiteName.value,
+        site_status: 'active',
+        status: 'active'
+      }
+    }
+    websites.value.unshift(createdSite)
     closeAdd()
   } catch (e) {
     addError.value = e?.response?.data?.message || e?.message || 'Could not add website'
@@ -148,17 +188,51 @@ async function submitAdd() {
   }
 }
 
+function openEdit(site) {
+  editingSite.value = site
+  editSiteName.value = site.site_name || site.name || ''
+  editValidationError.value = ''
+  editError.value = ''
+  showEdit.value = true
+}
+function closeEdit() {
+  if (savingEdit.value) return
+  showEdit.value = false
+}
+
+async function submitEdit() {
+  editError.value = ''
+  editValidationError.value = validateSiteName(editSiteName.value)
+  if (editValidationError.value) return
+  if (!editingSite.value) return
+  savingEdit.value = true
+  try {
+    const id = editingSite.value._id || editingSite.value.id
+    if (!id) throw new Error('Missing website id')
+    // Backend pattern: POST /website/:id with changed fields
+    await api.post(`/website/${id}`, { name: editSiteName.value })
+    if ('site_name' in editingSite.value) editingSite.value.site_name = editSiteName.value
+    else editingSite.value.name = editSiteName.value
+    closeEdit()
+  } catch (e) {
+    editError.value = e?.response?.data?.message || e?.message || 'Could not update website'
+  } finally {
+    savingEdit.value = false
+  }
+}
+
 async function toggleStatus(site) {
   try {
     site.__saving = true
-    const current = site.site_status || site.status
-    const next = current === 'active' ? 'inactive' : 'active'
+    const current = site.status || site.site_status
+    const next = current === 'active' ? 'deactive' : 'active'
     const id = site._id || site.id
     if (id) {
-      await api.post(`/website/${id}`, { site_status: next })
+      await api.post(`/website/${id}`, { status: next })
     }
+    // Keep both fields in sync for compatibility with UI and older data
+    site.status = next
     if ('site_status' in site) site.site_status = next
-    else site.status = next
   } catch (e) {
     console.error(e)
     // optionally show toast

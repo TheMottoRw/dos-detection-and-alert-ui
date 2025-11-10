@@ -104,7 +104,7 @@
       <div class="relative bg-white rounded-lg shadow-xl w-full max-w-md mx-4 p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Add new keyword</h3>
         <label class="block text-sm font-medium text-gray-700 mb-1" for="url-input">Keyword</label>
-        <input id="url-input" v-model="newUrl" type="text" placeholder="Technology" class="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500" />
+        <input id="url-input" v-model="newUrl" type="text" placeholder="Hacked" class="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500" />
         <p v-if="addValidationError" class="text-sm text-red-600 mt-2">{{ addValidationError }}</p>
         <p v-if="addError" class="text-sm text-red-600 mt-2">{{ addError }}</p>
         <div class="mt-6 flex justify-end space-x-3">

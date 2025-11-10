@@ -24,9 +24,9 @@
 
           <RouterLink to="/signup">
 
-            <button class="border-2 border-white text-white px-8 py-3 rounded-full font-medium hover:bg-white hover:text-blue-600 transition-colors">
-              SIGN UP
-            </button>
+<!--            <button class="border-2 border-white text-white px-8 py-3 rounded-full font-medium hover:bg-white hover:text-blue-600 transition-colors">-->
+<!--              SIGN UP-->
+<!--            </button>-->
           </RouterLink>
 
 <!--          <div class="mt-8 text-sm text-green-100">-->
@@ -70,7 +70,7 @@
             </div>
 
             <div class="text-center">
-              <a href="/table" class="text-sm text-gray-600 hover:text-gray-800">Forgot your password?</a>
+<!--              <a href="/table" class="text-sm text-gray-600 hover:text-gray-800">Forgot your password?</a>-->
             </div>
 
             <button
