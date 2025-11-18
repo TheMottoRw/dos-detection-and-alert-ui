@@ -41,6 +41,12 @@ const routes = [
     name: 'websites',
     component: () => import('../views/WebsitesView.vue')
   }
+  ,
+  {
+    path: '/users',
+    name: 'users',
+    component: () => import('../views/UsersView.vue')
+  }
 ]
 
 const router = createRouter({

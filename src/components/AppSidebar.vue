@@ -17,21 +17,23 @@
     <nav class="flex-1 p-4 text-white overflow-y-auto">
       <ul class="space-y-3">
 
-<!--        <li>-->
-<!--          <RouterLink to="/dashboard"  v-slot="{ href, navigate, isActive }">-->
-<!--            <a-->
-<!--                :href="href"-->
-<!--                @click="navigate"-->
-<!--                class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors"-->
-<!--                :class="isActive? 'bg-blue-800 text-white' : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'"-->
-<!--            >-->
-<!--            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">-->
-<!--              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"/>-->
-<!--            </svg>-->
-<!--            Dashboard-->
-<!--            </a>-->
-<!--          </RouterLink>-->
-<!--        </li>-->
+        <li>
+          <RouterLink to="/dashboard"  v-slot="{ href, navigate, isActive }">
+            <a
+                :href="href"
+                @click="navigate"
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors"
+                :class="isActive? 'bg-blue-800 text-white' : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                   aria-hidden="true" focusable="false">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"/>
+              </svg>
+              Dashboard
+            </a>
+          </RouterLink>
+        </li>
 
         <li>
           <RouterLink to="/keywords" v-slot="{ href, navigate, isActive }">
@@ -75,6 +77,21 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
             Logs
+            </a>
+          </RouterLink>
+        </li>
+        <li>
+          <RouterLink to="/users" v-slot="{ href, navigate, isActive }">
+            <a
+                :href="href"
+                @click="navigate"
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors"
+                :class="isActive? 'bg-blue-800 text-white' : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-4-4h-1M9 20H4v-2a4 4 0 014-4h1m0-4a4 4 0 110-8 4 4 0 010 8zm8 0a4 4 0 100-8 4 4 0 000 8z" />
+              </svg>
+              Users
             </a>
           </RouterLink>
         </li>

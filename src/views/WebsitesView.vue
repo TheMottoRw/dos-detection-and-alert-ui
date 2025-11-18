@@ -16,6 +16,46 @@
           <p class="text-sm">Loading websites...</p>
         </div>
         <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
+
+        <!-- Filters -->
+        <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div class="col-span-1">
+            <label for="search" class="block text-xs font-medium text-gray-600 mb-1">Search</label>
+            <input
+              id="search"
+              v-model="searchQuery"
+              type="text"
+              placeholder="Search by name or status..."
+              class="block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div class="col-span-1">
+            <label for="status-filter" class="block text-xs font-medium text-gray-600 mb-1">Status</label>
+            <select
+              id="status-filter"
+              v-model="statusFilter"
+              class="block w-full px-3 py-2 border border-gray-300 bg-white rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="all">All</option>
+              <option value="active">Active</option>
+              <option value="deactive">Deactive</option>
+              <option value="defaced">Defaced</option>
+            </select>
+          </div>
+          <div class="col-span-1">
+            <label for="page-size" class="block text-xs font-medium text-gray-600 mb-1">Rows per page</label>
+            <select
+              id="page-size"
+              v-model.number="pageSize"
+              class="block w-full px-3 py-2 border border-gray-300 bg-white rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option :value="5">5</option>
+              <option :value="10">10</option>
+              <option :value="20">20</option>
+              <option :value="50">50</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       <div class="overflow-x-auto">
@@ -29,11 +69,11 @@
           </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-if="!loading && websites.length === 0">
+            <tr v-if="!loading && filteredWebsites.length === 0">
               <td colspan="4" class="px-6 py-6 text-center text-gray-500">No websites yet. Click "Add website" to create one.</td>
             </tr>
-            <tr v-for="(site, idx) in websites" :key="site._id || site.id || site.site_name + idx">
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ idx + 1 }}</td>
+            <tr v-for="(site, idx) in paginatedWebsites" :key="site._id || site.id || (site.site_name || site.name) + idx">
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ (currentPage - 1) * pageSize + idx + 1 }}</td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="text-sm font-medium text-gray-900">{{ site.site_name || site.name }}</div>
               </td>
@@ -61,6 +101,32 @@
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- Pagination footer -->
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-4">
+        <div class="text-sm text-gray-600">
+          <span v-if="totalCount > 0">
+            Showing {{ startItem }}–{{ endItem }} of {{ totalCount }} websites
+          </span>
+        </div>
+        <div class="flex items-center gap-2 justify-end">
+          <button
+            class="px-3 py-1.5 border rounded-md text-sm disabled:opacity-40"
+            :disabled="currentPage === 1"
+            @click="prevPage"
+          >
+            Prev
+          </button>
+          <span class="text-sm text-gray-700">Page {{ currentPage }} of {{ totalPages }}</span>
+          <button
+            class="px-3 py-1.5 border rounded-md text-sm disabled:opacity-40"
+            :disabled="currentPage === totalPages || totalPages === 0"
+            @click="nextPage"
+          >
+            Next
+          </button>
+        </div>
       </div>
     </div>
 
@@ -103,7 +169,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed, watch } from 'vue'
 import api from '../services/http.js'
 
 const websites = ref([])
@@ -123,6 +189,64 @@ const editValidationError = ref('')
 const editError = ref('')
 const savingEdit = ref(false)
 const editingSite = ref(null)
+
+// Filter & pagination state
+const searchQuery = ref('')
+const statusFilter = ref('all') // all | active | deactive | defaced
+const pageSize = ref(10)
+const currentPage = ref(1)
+
+const normalizedItems = computed(() => {
+  // Normalize status field for filtering/sorting convenience
+  return (websites.value || []).map(s => ({
+    ...s,
+    _norm_status: (s.site_status || s.status || '').toString().toLowerCase(),
+    _norm_name: (s.site_name || s.name || '').toString().toLowerCase()
+  }))
+})
+
+const filteredWebsites = computed(() => {
+  let list = normalizedItems.value
+  const q = searchQuery.value.trim().toLowerCase()
+  if (q) {
+    list = list.filter(s => s._norm_name.includes(q) || s._norm_status.includes(q))
+  }
+  if (statusFilter.value !== 'all') {
+    list = list.filter(s => s._norm_status === statusFilter.value)
+  }
+  // Return original objects (without helper props) to keep reactivity on actions
+  return list.map(({ _norm_status, _norm_name, ...orig }) => orig)
+})
+
+const totalCount = computed(() => filteredWebsites.value.length)
+const totalPages = computed(() => (totalCount.value === 0 ? 0 : Math.ceil(totalCount.value / pageSize.value)))
+
+const paginatedWebsites = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return filteredWebsites.value.slice(start, start + pageSize.value)
+})
+
+const startItem = computed(() => totalCount.value === 0 ? 0 : (currentPage.value - 1) * pageSize.value + 1)
+const endItem = computed(() => Math.min(currentPage.value * pageSize.value, totalCount.value))
+
+function prevPage() {
+  if (currentPage.value > 1) currentPage.value--
+}
+function nextPage() {
+  if (currentPage.value < totalPages.value) currentPage.value++
+}
+
+// Reset to first page when filters change
+watch([searchQuery, statusFilter, pageSize], () => {
+  currentPage.value = 1
+})
+
+// Clamp page when data changes
+watch([filteredWebsites, pageSize], () => {
+  const tp = totalPages.value
+  if (tp > 0 && currentPage.value > tp) currentPage.value = tp
+  if (tp === 0) currentPage.value = 1
+})
 
 function openAdd() {
   showAdd.value = true
@@ -180,11 +304,12 @@ async function submitAdd() {
       }
     }
     websites.value.unshift(createdSite)
-    closeAdd()
   } catch (e) {
     addError.value = e?.response?.data?.message || e?.message || 'Could not add website'
   } finally {
     saving.value = false
+    // Always close the dialog after the request has executed (success or error)
+    closeAdd()
   }
 }
 
@@ -213,11 +338,12 @@ async function submitEdit() {
     await api.post(`/website/${id}`, { name: editSiteName.value })
     if ('site_name' in editingSite.value) editingSite.value.site_name = editSiteName.value
     else editingSite.value.name = editSiteName.value
-    closeEdit()
   } catch (e) {
     editError.value = e?.response?.data?.message || e?.message || 'Could not update website'
   } finally {
     savingEdit.value = false
+    // Always close after the request has executed (success or error)
+    closeEdit()
   }
 }
 
@@ -233,6 +359,9 @@ async function toggleStatus(site) {
     // Keep both fields in sync for compatibility with UI and older data
     site.status = next
     if ('site_status' in site) site.site_status = next
+    // After a successful toggle, refetch to ensure the list reflects backend state
+    // and pagination/filtering stay consistent with server data.
+    await fetchWebsites()
   } catch (e) {
     console.error(e)
     // optionally show toast

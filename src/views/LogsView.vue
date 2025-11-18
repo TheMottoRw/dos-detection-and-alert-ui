@@ -14,25 +14,62 @@
           </svg>
           <p class="text-sm">{{ processingMessage }}</p>
         </div>
-        <!-- Success message banner -->
-        <div v-if="successMessage" class="mb-4 flex items-center text-green-700">
-          <svg class="-ml-1 mr-3 h-5 w-5 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-          <p class="text-sm">{{ successMessage }}</p>
-        </div>
-        <div class="relative">
-          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-            </svg>
+        <!-- Global notification banner -->
+        <transition name="fade">
+          <div
+            v-if="noticeVisible"
+            :class="[
+              'mt-3 p-3 rounded-md border text-sm',
+              noticeType === 'success' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'
+            ]"
+            role="status"
+            aria-live="polite"
+          >
+            {{ noticeMessage }}
           </div>
-          <input
+        </transition>
+
+        <!-- Filters -->
+        <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div class="col-span-1 relative">
+            <label for="search" class="block text-xs font-medium text-gray-600 mb-1">Search</label>
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none mt-6">
+              <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+              </svg>
+            </div>
+            <input
+              id="search"
               v-model="searchQuery"
               type="text"
-              placeholder="Search by keyword..."
-              class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-          />
+              placeholder="Search by IP, action or message..."
+              class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div class="col-span-1">
+            <label for="action-filter" class="block text-xs font-medium text-gray-600 mb-1">Action</label>
+            <select
+              id="action-filter"
+              v-model="actionFilter"
+              class="block w-full px-3 py-2 border border-gray-300 bg-white rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="all">All</option>
+              <option v-for="a in actions" :key="a" :value="a">{{ a }}</option>
+            </select>
+          </div>
+          <div class="col-span-1">
+            <label for="page-size" class="block text-xs font-medium text-gray-600 mb-1">Rows per page</label>
+            <select
+              id="page-size"
+              v-model.number="pageSize"
+              class="block w-full px-3 py-2 border border-gray-300 bg-white rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option :value="5">5</option>
+              <option :value="10">10</option>
+              <option :value="20">20</option>
+              <option :value="50">50</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -49,9 +86,9 @@
           </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-          <!-- <CHANGE> Updated to use filteredLogs instead of logs -->
-          <template v-if="filteredLogs.length > 0">
-            <template v-for="logs in filteredLogs" :key="logs._id">
+          <!-- Render from paginated logs -->
+          <template v-if="paginatedLogs.length > 0">
+            <template v-for="logs in paginatedLogs" :key="logs._id">
               <tr
                   @click="toggleExpand(logs._id)"
                   class="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
@@ -84,20 +121,31 @@
             </template>
           </template>
 
-          <!-- <CHANGE> Added no results message -->
+          <!-- No results message -->
           <tr v-else>
             <td colspan="5" class="px-6 py-12 text-center">
               <div class="text-gray-500">
                 <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.47-.881-6.08-2.33"></path>
                 </svg>
-                <p class="text-lg font-medium text-gray-900 mb-1">No keywords found</p>
+                <p class="text-lg font-medium text-gray-900 mb-1">No logs found</p>
                 <p class="text-gray-500">Try adjusting your search criteria</p>
               </div>
             </td>
           </tr>
           </tbody>
         </table>
+      </div>
+      <!-- Pagination footer -->
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-4">
+        <div class="text-sm text-gray-600">
+          <span v-if="totalCount > 0">Showing {{ startItem }}–{{ endItem }} of {{ totalCount }} logs</span>
+        </div>
+        <div class="flex items-center gap-2 justify-end">
+          <button class="px-3 py-1.5 border rounded-md text-sm disabled:opacity-40" :disabled="currentPage === 1" @click="prevPage">Prev</button>
+          <span class="text-sm text-gray-700">Page {{ currentPage }} of {{ totalPages }}</span>
+          <button class="px-3 py-1.5 border rounded-md text-sm disabled:opacity-40" :disabled="currentPage === totalPages || totalPages === 0" @click="nextPage">Next</button>
+        </div>
       </div>
     </div>
 
@@ -179,11 +227,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import api from '../services/http.js'
 
-// <CHANGE> Added searchQuery reactive variable
+// Filters & pagination state
 const searchQuery = ref('')
+const actionFilter = ref('all') // all | <action>
+const pageSize = ref(10)
+const currentPage = ref(1)
 const expandedRows = ref([])
 
 const logs = ref([])
@@ -195,9 +246,28 @@ const error = ref(null)
 // processing loader (under title) shown while saving and refreshing
 const processing = ref(false)
 const processingMessage = ref('')
-// success banner message for non-intrusive feedback
-const successMessage = ref('')
-let successTimer = null
+// Page-scoped notification banner (kept minimal; used by template banner)
+const noticeMessage = ref('')
+const noticeType = ref('success')
+const noticeVisible = ref(false)
+let noticeTimer = null
+
+function hideNotice() {
+  noticeVisible.value = false
+  noticeMessage.value = ''
+  if (noticeTimer) {
+    clearTimeout(noticeTimer)
+    noticeTimer = null
+  }
+}
+
+function showNotice(msg, type = 'success', timeoutMs = 3000) {
+  noticeMessage.value = msg
+  noticeType.value = type
+  noticeVisible.value = true
+  if (noticeTimer) clearTimeout(noticeTimer)
+  noticeTimer = setTimeout(() => hideNotice(), timeoutMs)
+}
 
 // Base API URL from Vite env (.env should define VITE_API_URL)
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
@@ -224,7 +294,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
-  clearTimeout(successTimer)
+  clearTimeout(noticeTimer)
 })
 
 // Delete modal state
@@ -255,15 +325,14 @@ async function confirmDelete() {
     const { data } = await api.post(`/log/${deleteTarget.value._id}/delete`)
     // Remove from local list
     logs.value = logs.value.filter(c => c._id !== deleteTarget.value._id)
-    // Show server response as success text
-    const msg = data?.message || 'Deleted successfully'
-    successMessage.value = msg
-    clearTimeout(successTimer)
-    successTimer = setTimeout(() => { successMessage.value = '' }, 3000)
+    // Notify
+    const msg = data?.message || 'Log deleted successfully'
+    showNotice(msg, 'success')
     closeDeleteModal()
   } catch (e) {
     deleteError.value = e?.response?.data?.message || e?.message || 'Failed to delete logs'
     console.error('Failed to delete logs', e)
+    showNotice(deleteError.value, 'error')
   } finally {
     deleting.value = false
     processing.value = false
@@ -354,14 +423,12 @@ async function updateClassification() {
         category: payload.category
       }
     }
-    successMessage.value = 'Classification updated'
-    // auto-hide success after 3 seconds
-    clearTimeout(successTimer)
-    successTimer = setTimeout(() => { successMessage.value = '' }, 3000)
+    showNotice('Classification updated', 'success')
     closeEditModal()
   } catch (e) {
     editError.value = e?.response?.data?.message || e?.message || 'Failed to update logs'
     console.error('Failed to update logs', e)
+    showNotice(editError.value, 'error')
   } finally {
     savingEdit.value = false
     processing.value = false
@@ -369,18 +436,54 @@ async function updateClassification() {
   }
 }
 
-// <CHANGE> Added computed property for filtered logs based on search
-const filteredLogs = computed(() => {
-  if (!searchQuery.value) {
-    return logs.value
-  }
+// Build normalized logs for flexible filtering
+const normalized = computed(() => (logs.value || []).map(l => ({
+  ...l,
+  _norm_ip: (l.ip || '').toString().toLowerCase(),
+  _norm_action: (l.action || '').toString().toLowerCase(),
+  _norm_message: (l.message || '').toString().toLowerCase(),
+})))
 
-  const query = searchQuery.value.toLowerCase()
-  return logs.value.filter(logs =>
-      (logs.domain_name || '').toLowerCase().includes(query) ||
-      (logs.logs_category || '').toLowerCase().includes(query) ||
-      (logs.logs_status || '').toLowerCase().includes(query)
-  )
+// Unique available actions for the Action filter
+const actions = computed(() => {
+  const set = new Set((logs.value || []).map(l => (l.action || '').toString().toLowerCase()).filter(Boolean))
+  return Array.from(set).sort()
+})
+
+// Apply search + action filters
+const filteredLogs = computed(() => {
+  let list = normalized.value
+  const q = searchQuery.value.trim().toLowerCase()
+  if (q) {
+    list = list.filter(l => l._norm_ip.includes(q) || l._norm_action.includes(q) || l._norm_message.includes(q))
+  }
+  if (actionFilter.value !== 'all') {
+    const af = (actionFilter.value || '').toLowerCase()
+    list = list.filter(l => l._norm_action === af)
+  }
+  // return original objects
+  return list.map(({ _norm_ip, _norm_action, _norm_message, ...orig }) => orig)
+})
+
+// Pagination derivations
+const totalCount = computed(() => filteredLogs.value.length)
+const totalPages = computed(() => (totalCount.value === 0 ? 0 : Math.ceil(totalCount.value / pageSize.value)))
+const paginatedLogs = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return filteredLogs.value.slice(start, start + pageSize.value)
+})
+const startItem = computed(() => totalCount.value === 0 ? 0 : (currentPage.value - 1) * pageSize.value + 1)
+const endItem = computed(() => Math.min(currentPage.value * pageSize.value, totalCount.value))
+
+function prevPage() { if (currentPage.value > 1) currentPage.value-- }
+function nextPage() { if (currentPage.value < totalPages.value) currentPage.value++ }
+
+// Watchers: reset/clamp page when inputs/data change
+watch([searchQuery, actionFilter, pageSize], () => { currentPage.value = 1 })
+watch([filteredLogs, pageSize], () => {
+  const tp = totalPages.value
+  if (tp > 0 && currentPage.value > tp) currentPage.value = tp
+  if (tp === 0) currentPage.value = 1
 })
 
 const toggleExpand = (logsId) => {
@@ -438,16 +541,15 @@ async function saveNewWebsite() {
   processingMessage.value = 'Processing your website logs, please wait...'
   try {
     await api.post(`/classify`, { url: newUrl.value, userId: `${USER_ID}` })
-    // Show success message upon receiving response
-    successMessage.value = 'Saved website'
-    clearTimeout(successTimer)
-    successTimer = setTimeout(() => { successMessage.value = '' }, 3000)
+    // Success notice
+    showNotice('Website saved and classified', 'success')
     closeAddModal()
     // Refresh logs after saving
     await fetchLogs()
   } catch (e) {
     addError.value = e?.response?.data?.message || e?.message || 'Failed to save website'
     console.error('Failed to save website', e)
+    showNotice(addError.value, 'error')
   } finally {
     savingAdd.value = false
     processing.value = false
@@ -456,3 +558,9 @@ async function saveNewWebsite() {
 }
 
 </script>
+
+<style scoped>
+/* Simple fade transition for the notification banner */
+.fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+</style>
